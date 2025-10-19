@@ -88,7 +88,7 @@ def main():
         all_text: list[str] = []
 
         for i, chunk_path in enumerate(chunks, start=1):
-            segments, info = model.transcribe(chunk_path, task='translate', beam_size=5)
+            segments, info = model.transcribe(chunk_path, task='translate', beam_size=3)
             text_parts = [seg.text for seg in segments]
             all_text.append(' '.join(text_parts).strip())
             print(json.dumps({ 'type': 'progress', 'processed': i, 'total': total }), flush=True)

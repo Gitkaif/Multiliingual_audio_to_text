@@ -83,6 +83,11 @@ export async function createJob(inputPath, originalName = '') {
           results.set(id, evt.text || '');
           job.status = 'completed';
           job.message = 'Completed';
+          try {
+            if (inputPath && fs.existsSync(inputPath)) {
+              fs.unlinkSync(inputPath);
+            }
+          } catch {}
         } else if (evt.type === 'init') {
           job.totalChunks = evt.total || 0;
           job.message = 'Initialized';
