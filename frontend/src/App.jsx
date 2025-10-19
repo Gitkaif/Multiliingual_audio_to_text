@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import UploadArea from './components/UploadArea.jsx'
+import ProgressBar from './components/ProgressBar.jsx'
 import { uploadFile, getStatus, getResult } from './api.js'
 
 export default function App() {
@@ -105,10 +106,19 @@ export default function App() {
     <div className="min-h-full">
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text text-transparent drop-shadow-sm">
+              SHADOW SPEED
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 border border-gray-200 bg-white/60 backdrop-blur text-[11px] font-medium text-gray-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>AI Transcription</span>
+            </div>
+          </div>
+          <h1 className="mt-4 text-3xl sm:text-4xl font-semibold tracking-tight bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text text-transparent">
             Multilingual Audio → English Transcription
           </h1>
-          <p className="text-gray-600 mt-1 text-sm">Fast, private, and on your machine</p>
+          <p className="text-gray-600 mt-2 text-sm">Fast. Private. On your machine.</p>
         </div>
 
         <UploadArea onFileSelected={onFileSelected} uploading={uploading} progress={uploadProgress} />
@@ -124,10 +134,15 @@ export default function App() {
           <div className="mt-6 p-5 rounded-2xl glass">
             <div className="text-gray-900"><span className="font-medium">Status:</span> {status.status}</div>
             {status.totalChunks > 0 && (
-              <div className="text-gray-700 mt-1">Processing {status.processedChunks}/{status.totalChunks}</div>
+              <div className="mt-3">
+                <ProgressBar value={Math.round((status.processedChunks / status.totalChunks) * 100)} />
+                <div className="text-xs text-gray-600 mt-2">
+                  Processing {status.processedChunks}/{status.totalChunks} ({Math.round((status.processedChunks / status.totalChunks) * 100)}%)
+                </div>
+              </div>
             )}
             {status.message && (
-              <div className="text-gray-600 text-sm mt-1 break-words">{status.message}</div>
+              <div className="text-gray-600 text-sm mt-2 break-words">{status.message}</div>
             )}
           </div>
         )}

@@ -125,6 +125,42 @@ npm run dev
 - After upload, processing starts; polling shows `Processing x/y`
 - When done, copy or download the English text
 
+## Manual Transcriber Usage vs Frontend Flow
+
+- **When you DO NOT run manually**
+  - Using the frontend upload flow. The backend automatically spawns `transcriber/transcribe.py` on upload via `createJob()` in `backend/src/jobs/manager.js`. No venv activation needed at runtime.
+
+- **When you MAY run manually**
+  - Testing or debugging the transcriber without the web app.
+  - Priming first-time model download/caching.
+  - Batch/offline processing of a local file.
+
+### Commands (Windows PowerShell)
+
+- **Prerequisites (once)**
+```powershell
+winget install Gyan.FFmpeg
+python -m venv transcriber\.venv
+transcriber\.venv\Scripts\Activate.ps1
+pip install -r transcriber\requirements.txt
+```
+
+- **Manual run (example)**
+```powershell
+# From repo root
+python transcriber\transcribe.py --input "D:\audiooo\harvard.wav" --chunk-seconds 60 --model-size small --device auto
+```
+
+- **Optional (CUDA forced or local model path)**
+```powershell
+python transcriber\transcribe.py --input "D:\audiooo\harvard.wav" --device cuda --model-path "C:\models\faster-whisper\medium"
+```
+
+- **Deactivate venv**
+```powershell
+deactivate
+```
+
 ## Notes on Large Files
 - The backend uses ffmpeg to split long audio into `CHUNK_SECONDS` segments and processes each sequentially in the Python worker, streaming progress back to the backend.
 - For very large files, ensure sufficient disk space in `UPLOAD_DIR`.
