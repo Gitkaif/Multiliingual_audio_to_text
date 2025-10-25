@@ -67,40 +67,82 @@ export default function App() {
     toast.success('TXT downloaded', { autoClose: 1500 })
   }
 
-  const onDownloadPdf = async () => {
-    try {
-      const { default: jsPDF } = await import('jspdf')
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-      const margin = 40
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const usableWidth = pageWidth - margin * 2
-      
-      const title = (file?.name || 'Transcript')
-      doc.setFontSize(14)
+const onDownloadPdf = async () => {
+  try {
+    const { default: jsPDF } = await import('jspdf')
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+    const margin = 40
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const usableWidth = pageWidth - margin * 2
+    
+    const title = (file?.name || 'Transcript')
+    const headerFontSize = 14
+    const headerGap = 28 // increased space below header
+
+    // Helper to draw header and return starting Y for content
+    const drawHeader = () => {
+      doc.setFont('times', 'normal')
+      doc.setFontSize(headerFontSize)
+      // Slightly faded gray for header
+      doc.setTextColor(120, 120, 120)
       doc.text(title, margin, margin)
+      // Reset base font for body
+      doc.setFont('times', 'normal')
       doc.setFontSize(12)
+      doc.setTextColor(0, 0, 0)
+      // Start content below header + gap
+      return margin + headerFontSize + headerGap
+    }
 
-      const lines = doc.splitTextToSize(resultText || '', usableWidth)
-      const lineHeight = 16
-      let y = margin + 24
-      const pageHeight = doc.internal.pageSize.getHeight()
+    // Draw header on first page
+    let y = drawHeader()
 
-      lines.forEach((line) => {
-        if (y + lineHeight > pageHeight - margin) {
-          doc.addPage()
-          y = margin
-        }
-        doc.text(line, margin, y)
+    const raw = resultText || ''
+    const lineHeight = 16
+    const pageHeight = doc.internal.pageSize.getHeight()
+
+    // Tokenize by sentences (., !, ? and Unicode variants). Keep punctuation attached.
+    const sentences = raw.match(/[^.!?？！\u061F\uFF01\uFF1F]+[.!?？！\u061F\uFF01\uFF1F]|[^.!?？！\u061F\uFF01\uFF1F]+/g) || []
+
+    sentences.forEach((line) => {
+      const text = (line || '').trim()
+      if (text.length === 0) {
+        if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = drawHeader() }
+        y += lineHeight
+        return
+      }
+
+      const isQuestion = /[?？\u061F\uFF1F]$/.test(text)
+      // Set style for the whole logical line (will be reinforced per wrapped sub-line)
+      doc.setFont('times', isQuestion ? 'bold' : 'normal')
+      doc.setFontSize(12)
+      doc.setTextColor(0, 0, 0)
+
+      const wrapped = doc.splitTextToSize(text, usableWidth)
+      wrapped.forEach((sub) => {
+        if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = drawHeader() }
+        // Reinforce font and size on each rendered line to avoid any carry-over
+        doc.setFont('times', isQuestion ? 'bold' : 'normal')
+        doc.setFontSize(12)
+        doc.setTextColor(0, 0, 0)
+        doc.text(sub, margin, y)
         y += lineHeight
       })
+      // Tiny extra gap after question for visual separation
+      if (isQuestion) {
+        if (y + 4 > pageHeight - margin) { doc.addPage(); y = drawHeader() }
+        y += 4
+      }
+    })
+    // (Diagnostics removed)
 
-      doc.save((file?.name || 'transcript') + '.pdf')
-      toast.success('PDF downloaded', { autoClose: 1500 })
-    } catch (e) {
-      console.error('PDF generation failed', e)
-      toast.error('Failed to generate PDF')
-    }
+    doc.save((file?.name || 'transcript') + '.pdf')
+    toast.success('PDF downloaded', { autoClose: 1500 })
+  } catch (e) {
+    console.error('PDF generation failed', e)
+    toast.error('Failed to generate PDF')
   }
+}
 
   return (
     <div className="min-h-full">
