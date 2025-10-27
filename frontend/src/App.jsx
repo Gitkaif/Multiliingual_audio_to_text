@@ -13,6 +13,7 @@ export default function App() {
   const [status, setStatus] = useState(null)
   const [resultText, setResultText] = useState('')
   const [error, setError] = useState('')
+  const [language, setLanguage] = useState('Auto')
   const pollRef = useRef(null)
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function App() {
     setUploading(true)
     setUploadProgress(0)
     try {
-      const { jobId } = await uploadFile(f, setUploadProgress)
+      const { jobId } = await uploadFile(f, setUploadProgress, language)
       setJobId(jobId)
     } catch (e) {
       setError('Upload failed')
@@ -87,6 +88,8 @@ const onDownloadPdf = async () => {
       doc.setTextColor(120, 120, 120)
       doc.text(title, margin, margin)
       // Reset base font for body
+      // Force reset by toggling font family
+      doc.setFont('helvetica', 'normal')
       doc.setFont('times', 'normal')
       doc.setFontSize(12)
       doc.setTextColor(0, 0, 0)
@@ -104,35 +107,67 @@ const onDownloadPdf = async () => {
     // Tokenize by sentences (., !, ? and Unicode variants). Keep punctuation attached.
     const sentences = raw.match(/[^.!?？！\u061F\uFF01\uFF1F]+[.!?？！\u061F\uFF01\uFF1F]|[^.!?？！\u061F\uFF01\uFF1F]+/g) || []
 
+    const qEnd = /[?？\u061F\uFF1F]\s*['"”’)]?\s*$/
     sentences.forEach((line) => {
       const text = (line || '').trim()
       if (text.length === 0) {
-        if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = drawHeader() }
+        if (y + lineHeight > pageHeight - margin) {
+          doc.addPage();
+          y = drawHeader();
+          // After header, ensure normal body style
+          doc.setFont('times', 'normal');
+          doc.setFontSize(12);
+          doc.setTextColor(0, 0, 0);
+        }
         y += lineHeight
         return
       }
 
-      const isQuestion = /[?？\u061F\uFF1F]$/.test(text)
-      // Set style for the whole logical line (will be reinforced per wrapped sub-line)
-      doc.setFont('times', isQuestion ? 'bold' : 'normal')
+      const isQuestion = qEnd.test(text)
+      // Start each sentence from a known normal style (hard reset)
+      doc.setFont('helvetica', 'normal')
+      doc.setFont('times', 'normal')
       doc.setFontSize(12)
       doc.setTextColor(0, 0, 0)
 
       const wrapped = doc.splitTextToSize(text, usableWidth)
       wrapped.forEach((sub) => {
-        if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = drawHeader() }
-        // Reinforce font and size on each rendered line to avoid any carry-over
+        if (y + lineHeight > pageHeight - margin) {
+          doc.addPage();
+          y = drawHeader();
+          // After header, ensure normal body style
+          doc.setFont('helvetica', 'normal');
+          doc.setFont('times', 'normal');
+          doc.setFontSize(12);
+          doc.setTextColor(0, 0, 0);
+        }
+        // Apply weight only for the current sub-line, then reset to normal immediately after
         doc.setFont('times', isQuestion ? 'bold' : 'normal')
         doc.setFontSize(12)
         doc.setTextColor(0, 0, 0)
         doc.text(sub, margin, y)
+        // Reset to normal to prevent state leaking into next lines/pages
+        doc.setFont('helvetica', 'normal')
+        doc.setFont('times', 'normal')
         y += lineHeight
       })
       // Tiny extra gap after question for visual separation
       if (isQuestion) {
-        if (y + 4 > pageHeight - margin) { doc.addPage(); y = drawHeader() }
+        if (y + 4 > pageHeight - margin) {
+          doc.addPage();
+          y = drawHeader();
+          doc.setFont('helvetica', 'normal');
+          doc.setFont('times', 'normal');
+          doc.setFontSize(12);
+          doc.setTextColor(0, 0, 0);
+        }
         y += 4
       }
+      // Extra safety: reset after finishing each sentence
+      doc.setFont('helvetica', 'normal')
+      doc.setFont('times', 'normal')
+      doc.setFontSize(12)
+      doc.setTextColor(0, 0, 0)
     })
     // (Diagnostics removed)
 
@@ -161,6 +196,20 @@ const onDownloadPdf = async () => {
             Multilingual Audio → English Transcription
           </h1>
           <p className="text-gray-600 mt-2 text-sm">Fast. Private. On your machine.</p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2 text-gray-700">Input language</label>
+          <select
+            className="w-full sm:w-64 p-2 rounded-xl border border-gray-200 bg-white text-gray-900"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            <option>Auto</option>
+            <option>Hindi</option>
+            <option>Marathi</option>
+            <option>English</option>
+          </select>
         </div>
 
         <UploadArea onFileSelected={onFileSelected} uploading={uploading} progress={uploadProgress} />

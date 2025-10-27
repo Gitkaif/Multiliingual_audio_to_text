@@ -26,7 +26,23 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    const jobId = await createJob(req.file.path, req.file.originalname);
+    // Map input language dropdown to options
+    const sel = String(req.body?.language || '').trim().toLowerCase();
+    let options = { task: 'transcribe' };
+    if (sel === 'hindi' || sel === 'hi') {
+      options.language = 'hi';
+    } else if (sel === 'marathi' || sel === 'mr') {
+      options.language = 'mr';
+    } else if (sel === 'english' || sel === 'en') {
+      options.language = 'en';
+    } else if (sel === 'auto' || sel === '') {
+      // leave language undefined to allow autodetect
+    } else if (/^[a-z]{2}$/.test(sel)) {
+      // If a valid ISO 639-1 code is provided, allow it
+      options.language = sel;
+    }
+
+    const jobId = await createJob(req.file.path, req.file.originalname, options);
     res.json({ jobId });
   } catch (err) {
     console.error('[upload] error', err);

@@ -30,7 +30,7 @@ function resolvePythonBin() {
   return 'python';
 }
 
-export async function createJob(inputPath, originalName = '') {
+export async function createJob(inputPath, originalName = '', options = {}) {
   const id = nanoid();
   const job = {
     id,
@@ -52,6 +52,15 @@ export async function createJob(inputPath, originalName = '') {
     '--model-size', MODEL_SIZE,
     '--device', DEVICE
   ];
+
+  // Per-job overrides
+  if (options.task === 'transcribe' || options.task === 'translate') {
+    args.push('--task', options.task);
+  }
+  if (options.language && typeof options.language === 'string') {
+    // When language is provided (e.g., 'hi','mr','en'), pass it through
+    args.push('--language', options.language);
+  }
 
   // If a local model directory exists at transcriber/models/<MODEL_SIZE>, prefer it
   const localModelDir = path.resolve(__dirname, '../../..', 'transcriber', 'models', MODEL_SIZE);

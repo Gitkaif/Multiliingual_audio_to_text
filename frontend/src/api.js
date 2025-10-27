@@ -2,9 +2,12 @@ import axios from 'axios'
 
 const API_BASE = 'http://localhost:5001/api'
 
-export async function uploadFile(file, onProgress) {
+export async function uploadFile(file, onProgress, language) {
   const form = new FormData()
   form.append('file', file)
+  if (language) {
+    form.append('language', language)
+  }
   const res = await axios.post(`${API_BASE}/upload`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: (evt) => {

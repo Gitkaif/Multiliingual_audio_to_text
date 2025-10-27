@@ -70,6 +70,8 @@ def main():
     parser.add_argument('--model-size', default='small')
     parser.add_argument('--model-path', default=None, help='Local path to a faster-whisper model directory')
     parser.add_argument('--device', default='auto')
+    parser.add_argument('--task', default='translate', choices=['transcribe', 'translate'])
+    parser.add_argument('--language', default=None, help='ISO 639-1 language code (e.g., en, hi, mr). Omit for autodetect')
     args = parser.parse_args()
 
     device = choose_device(args.device)
@@ -88,7 +90,12 @@ def main():
         all_text: list[str] = []
 
         for i, chunk_path in enumerate(chunks, start=1):
-            segments, info = model.transcribe(chunk_path, task='translate', beam_size=3)
+            segments, info = model.transcribe(
+                chunk_path,
+                task=args.task,
+                language=args.language,
+                beam_size=3
+            )
             text_parts = [seg.text for seg in segments]
             all_text.append(' '.join(text_parts).strip())
             print(json.dumps({ 'type': 'progress', 'processed': i, 'total': total }), flush=True)
